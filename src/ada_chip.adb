@@ -10,7 +10,7 @@ with Video;
 procedure Ada_Chip is
    package Random_Byte is new Ada.Numerics.Discrete_Random (Byte);
 
-   Steps_Per_Frame : constant := 16;
+   Steps_Per_Frame : constant := 8;
 
    State            : CPU.Instance;
    Random_Generator : Random_Byte.Generator;
@@ -31,7 +31,10 @@ procedure Ada_Chip is
 
          for J in 0 .. 7 loop
             if Row_Pixels (7 - J) then
-               if Video.Toggle_Pixel (X + sfUint32 (J), Y + sfUint32 (I)) then
+               if Video.Toggle_Pixel
+                  ((X + sfUint32 (J)) mod Video.Width,
+                     (Y + sfUint32 (I)) mod Video.Height)
+               then
                   VF := True;
                end if;
             end if;
@@ -112,6 +115,8 @@ procedure Ada_Chip is
          when Misc => case To_Byte (ins) is
             when 16#07# =>
                State.Registers (X_Register (ins)) := State.Delay_Timer;
+            when 16#0A# =>
+               State.Registers (X_Register (ins)) := Byte (Video.Next_Key);
             when 16#15# =>
                State.Delay_Timer := State.Registers (X_Register (ins));
             when 16#18# => null; --  TODO: sound
@@ -120,7 +125,7 @@ procedure Ada_Chip is
                   Address (State.Registers (X_Register (ins)));
             when 16#29# =>
                State.Address_Register :=
-                  Address (State.Registers (X_Register (ins))) * 5;
+                  Address (State.Registers (X_Register (ins)) mod 16) * 5;
             when 16#33# => begin
                State.Memory (State.Address_Register) :=
                   State.Registers (X_Register (ins)) / 100;
@@ -158,6 +163,7 @@ begin
 
       while Video.Is_Running loop
          Video.Display;
+         Video.Poll_Events;
 
          if State.Delay_Timer > 0 then
             State.Delay_Timer := State.Delay_Timer - 1;

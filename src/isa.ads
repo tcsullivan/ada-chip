@@ -4,20 +4,20 @@ package ISA is
    type Register_Index is mod 2 ** 4;
    type Bank           is array (Address) of Byte;
    type Register_Bank  is array (Register_Index) of Byte;
-   type Pixel          is array (0 .. 7) of Boolean;
+   type Pixel          is array (0 .. Byte'Size - 1) of Boolean;
    pragma Pack (Pixel);
 
    type Opcode_Value is mod 2 ** 12;
+   type Opcode_Raw   is mod 2 ** 16;
    type Opcode_Class is (
       Flow, Jump, Call, Equal, Not_Equal, Compare, Set_Register, Add, Math,
       Not_Compare, Set_Address, Jump_Relative, Random, Draw_Sprite, Input, Misc
    ) with Size => 4;
-   type Opcode_Raw   is mod 2 ** 16;
    type Opcode is record
       Value : Opcode_Value;
       Class : Opcode_Class;
    end record with
-      Size => 16;
+      Size => Opcode_Raw'Size;
 
    for Opcode use record
       Value at 0 range 0 .. 11;

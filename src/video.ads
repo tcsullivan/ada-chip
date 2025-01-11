@@ -21,11 +21,13 @@ package Video is
    procedure Initialize;
    procedure Display;
    procedure Finish;
+   procedure Poll_Events;
 
    function Key_Down (K : Key) return Boolean;
    function Key_Up (K : Key) return Boolean;
    function Is_Running return Boolean;
    function Toggle_Pixel (X, Y : sfUint32) return Boolean;
+   function Next_Key return Key;
 
 private
    Keys           : Key_Map;

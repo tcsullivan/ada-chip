@@ -8,7 +8,7 @@ package CPU is
       (Index_Type => Natural, Element_Type => Address);
 
    type Instance is record
-      Memory           : Bank := [
+      Memory           : Bank := (
          16#F0#, 16#90#, 16#90#, 16#90#, 16#F0#, -- 0
          16#20#, 16#60#, 16#20#, 16#20#, 16#70#, -- 1
          16#F0#, 16#10#, 16#F0#, 16#80#, 16#F0#, -- 2
@@ -26,7 +26,7 @@ package CPU is
          16#F0#, 16#80#, 16#F0#, 16#80#, 16#F0#, -- E
          16#F0#, 16#80#, 16#F0#, 16#80#, 16#80#, -- F
          others => 0
-      ];
+      );
       Registers        : Register_Bank;
       Program_Counter  : Address := Start_Address;
       Address_Register : Address := 0;

@@ -26,7 +26,24 @@ package body Video is
       return RenderWindow.isOpen (app) = sfTrue;
    end Is_Running;
 
-   procedure Display is
+   function Next_Key return Key is
+   begin
+      while Is_Running loop
+         Poll_Events;
+
+         for I in Key'First .. Key'Last loop
+            if Keys (I) then
+               return I;
+            end if;
+         end loop;
+
+         delay 0.016;
+      end loop;
+
+      return 0; --  Only get here on program exit
+   end Next_Key;
+
+   procedure Poll_Events is
       use Sf.Window.Event;
       use Sf.Window.Keyboard;
 
@@ -77,7 +94,10 @@ package body Video is
             when others => null;
          end case;
       end loop;
+   end Poll_Events;
 
+   procedure Display is
+   begin
       RenderWindow.clear (app, Color.sfWhite);
       Texture.updateFromImage (Pixels_Texture, Pixels, 0, 0);
       RenderWindow.drawSprite (app, Pixels_Sprite);
@@ -87,9 +107,11 @@ package body Video is
    function Toggle_Pixel (X, Y : sfUint32) return Boolean is
       use Color;
 
-      P : constant sfColor := Image.getPixel (Pixels, X, Y);
-      R : constant Boolean := P = sfWhite;
+      P : sfColor;
+      R : Boolean;
    begin
+      P := Image.getPixel (Pixels, X, Y);
+      R := P = sfWhite;
       Image.setPixel (Pixels, X, Y, (if R then sfBlack else sfWhite));
       return R;
    end Toggle_Pixel;
