@@ -2,18 +2,29 @@ with Ada.Command_Line;
 with Ada.Numerics.Discrete_Random;
 with Ada.Text_IO;
 with Sf;
+with Sf.Audio;
+with Sf.Audio.Sound;
+with Sf.Audio.SoundBuffer;
 
 with ISA; use ISA;
 with CPU;
 with Video;
 
 procedure Ada_Chip is
+   use Sf.Audio;
+
    package Random_Byte is new Ada.Numerics.Discrete_Random (Byte);
 
    Steps_Per_Frame : constant := 8;
 
    State            : CPU.Instance;
    Random_Generator : Random_Byte.Generator;
+   Delay_Timer      : Byte := 0;
+   Sound_Timer      : Byte := 0;
+
+   Beep_Sound_Buffer : constant sfSoundBuffer_Ptr :=
+      SoundBuffer.createFromFile ("beep.ogg");
+   Beep_Sound        : constant sfSound_Ptr := Sound.create;
 
    procedure Draw_Sprite (VX, VY : Register_Index; N : Byte) is
       use Sf;
@@ -114,12 +125,13 @@ procedure Ada_Chip is
          end case;
          when Misc => case To_Byte (ins) is
             when 16#07# =>
-               State.Registers (X_Register (ins)) := State.Delay_Timer;
+               State.Registers (X_Register (ins)) := Delay_Timer;
             when 16#0A# =>
                State.Registers (X_Register (ins)) := Byte (Video.Next_Key);
             when 16#15# =>
-               State.Delay_Timer := State.Registers (X_Register (ins));
-            when 16#18# => null; --  TODO: sound
+               Delay_Timer := State.Registers (X_Register (ins));
+            when 16#18# =>
+               Sound_Timer := State.Registers (X_Register (ins));
             when 16#1E# =>
                State.Address_Register := State.Address_Register +
                   Address (State.Registers (X_Register (ins)));
@@ -160,18 +172,26 @@ begin
       Video.Initialize;
       Random_Byte.Reset (Random_Generator);
       CPU.Load_File (State, Ada.Command_Line.Argument (1));
+      Sound.setBuffer (Beep_Sound, Beep_Sound_Buffer);
 
       while Video.Is_Running loop
          Video.Display;
          Video.Poll_Events;
 
-         if State.Delay_Timer > 0 then
-            State.Delay_Timer := State.Delay_Timer - 1;
+         if Delay_Timer > 0 then
+            Delay_Timer := Delay_Timer - 1;
+         end if;
+
+         if Sound_Timer > 0 then
+            Sound.play (Beep_Sound);
+            Sound_Timer := Sound_Timer - 1;
          end if;
 
          for I in 0 .. Steps_Per_Frame loop
             Run_Step;
          end loop;
       end loop;
+
+      Sound.destroy (Beep_Sound);
    end if;
 end Ada_Chip;

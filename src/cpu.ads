@@ -31,7 +31,6 @@ package CPU is
       Program_Counter  : Address := Start_Address;
       Address_Register : Address := 0;
       Stack            : Address_Stack.Vector;
-      Delay_Timer      : Byte := 0;
    end record;
 
    procedure Load_File (Inst : in out Instance; File_Name : String);
