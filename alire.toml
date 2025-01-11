@@ -1,0 +1,15 @@
+name = "ada_chip"
+description = "CHIP 8 emulator written in Ada"
+version = "0.1.0-dev"
+
+authors = ["Clyne Sullivan"]
+maintainers = ["Clyne Sullivan <clyne@bitgloo.com>"]
+maintainers-logins = ["clyne"]
+licenses = "GPL-3.0-or-later"
+website = "https://code.bitgloo.com/clyne/ada-chip"
+tags = []
+
+executables = ["ada_chip"]
+
+[[depends-on]]
+asfml = "^2.6.1"
