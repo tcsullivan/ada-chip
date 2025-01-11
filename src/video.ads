@@ -9,6 +9,9 @@ package Video is
    use Sf;
    use Sf.Graphics;
 
+   type Key is range 0 .. 15;
+   type Key_Map is array (Key'Range) of Boolean;
+
    Width  : constant := 64;
    Height : constant := 32;
    Scale  : constant := 10;
@@ -16,12 +19,16 @@ package Video is
 
    procedure Clear_Screen;
    procedure Initialize;
-   function Is_Running return Boolean;
    procedure Display;
-   function Toggle_Pixel (X, Y : sfUint32) return Boolean;
    procedure Finish;
 
+   function Key_Down (K : Key) return Boolean;
+   function Key_Up (K : Key) return Boolean;
+   function Is_Running return Boolean;
+   function Toggle_Pixel (X, Y : sfUint32) return Boolean;
+
 private
+   Keys           : Key_Map;
    Pixels         : constant sfImage_Ptr   := Image.create (Width, Height);
    Pixels_Sprite  : constant sfSprite_Ptr  := Sprite.create;
    Pixels_Texture : constant sfTexture_Ptr :=

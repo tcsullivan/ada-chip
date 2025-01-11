@@ -1,5 +1,6 @@
 with Sf.Window;
 with Sf.Window.Event;
+with Sf.Window.Keyboard;
 with Sf.Graphics.Color;
 
 package body Video is
@@ -27,13 +28,54 @@ package body Video is
 
    procedure Display is
       use Sf.Window.Event;
+      use Sf.Window.Keyboard;
 
       e : sfEvent;
    begin
       while RenderWindow.pollEvent (app, event => e) = sfTrue loop
-         if e.eventType = sfEvtClosed then
-            RenderWindow.close (app);
-         end if;
+         case e.eventType is
+            when sfEvtClosed =>
+               RenderWindow.close (app);
+            when sfEvtKeyPressed => case e.key.code is
+               when sfKeyNum0 => Keys (0) := True;
+               when sfKeyNum1 => Keys (1) := True;
+               when sfKeyNum2 => Keys (2) := True;
+               when sfKeyNum3 => Keys (3) := True;
+               when sfKeyNum4 => Keys (4) := True;
+               when sfKeyNum5 => Keys (5) := True;
+               when sfKeyNum6 => Keys (6) := True;
+               when sfKeyNum7 => Keys (7) := True;
+               when sfKeyNum8 => Keys (8) := True;
+               when sfKeyNum9 => Keys (9) := True;
+               when sfKeyA => Keys (10) := True;
+               when sfKeyB => Keys (11) := True;
+               when sfKeyC => Keys (12) := True;
+               when sfKeyD => Keys (13) := True;
+               when sfKeyE => Keys (14) := True;
+               when sfKeyF => Keys (15) := True;
+               when others => null;
+            end case;
+            when sfEvtKeyReleased => case e.key.code is
+               when sfKeyNum0 => Keys (0) := False;
+               when sfKeyNum1 => Keys (1) := False;
+               when sfKeyNum2 => Keys (2) := False;
+               when sfKeyNum3 => Keys (3) := False;
+               when sfKeyNum4 => Keys (4) := False;
+               when sfKeyNum5 => Keys (5) := False;
+               when sfKeyNum6 => Keys (6) := False;
+               when sfKeyNum7 => Keys (7) := False;
+               when sfKeyNum8 => Keys (8) := False;
+               when sfKeyNum9 => Keys (9) := False;
+               when sfKeyA => Keys (10) := False;
+               when sfKeyB => Keys (11) := False;
+               when sfKeyC => Keys (12) := False;
+               when sfKeyD => Keys (13) := False;
+               when sfKeyE => Keys (14) := False;
+               when sfKeyF => Keys (15) := False;
+               when others => null;
+            end case;
+            when others => null;
+         end case;
       end loop;
 
       RenderWindow.clear (app, Color.sfWhite);
@@ -56,4 +98,14 @@ package body Video is
    begin
       RenderWindow.close (app);
    end Finish;
+
+   function Key_Down (K : Key) return Boolean is
+   begin
+      return Keys (K);
+   end Key_Down;
+
+   function Key_Up (K : Key) return Boolean is
+   begin
+      return not Keys (K);
+   end Key_Up;
 end Video;

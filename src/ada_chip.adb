@@ -46,17 +46,16 @@ procedure Ada_Chip is
    begin
       ins := CPU.Get_Opcode (State);
       case ins.Class is
-         when Flow =>
-            case ins.Value is
-               when 16#E0# => Video.Clear_Screen;
-               when 16#EE# => CPU.Ret (State);
-               when others => begin
-                  Ada.Text_IO.Put_Line ("Unknown flow instruction!");
-                  Ada.Text_IO.Put_Line (Opcode_Value'Image (ins.Value));
-                  delay 1.0;
-                  Video.Finish;
-               end;
-            end case;
+         when Flow => case ins.Value is
+            when 16#E0# => Video.Clear_Screen;
+            when 16#EE# => CPU.Ret (State);
+            when others => begin
+               Ada.Text_IO.Put_Line ("Unknown flow instruction!");
+               Ada.Text_IO.Put_Line (Opcode_Value'Image (ins.Value));
+               delay 1.0;
+               Video.Finish;
+            end;
+         end case;
          when Jump => CPU.Jump (State, Address (ins.Value));
          when Call => CPU.Call (State, Address (ins.Value));
          when Equal =>
@@ -95,38 +94,52 @@ procedure Ada_Chip is
          when Draw_Sprite =>
             Draw_Sprite (X_Register (ins), Y_Register (ins),
                To_Byte (ins) mod 16);
-         when Misc =>
-            case To_Byte (ins) is
-               when 16#07# =>
-                  State.Registers (X_Register (ins)) := State.Delay_Timer;
-               when 16#15# =>
-                  State.Delay_Timer := State.Registers (X_Register (ins));
-               when 16#18# => null; --  TODO: sound
-               when 16#1E# =>
-                  State.Address_Register := State.Address_Register +
-                     Address (State.Registers (X_Register (ins)));
-               when 16#29# =>
-                  State.Address_Register :=
-                     Address (State.Registers (X_Register (ins))) * 5;
-               when 16#33# => begin
-                  State.Memory (State.Address_Register) :=
-                     State.Registers (X_Register (ins)) / 100;
-                  State.Memory (State.Address_Register + 1) :=
-                     State.Registers (X_Register (ins)) / 10 mod 10;
-                  State.Memory (State.Address_Register + 2) :=
-                     State.Registers (X_Register (ins)) mod 10;
-               end;
-               when 16#55# =>
-                  CPU.Reg_Store (State, X_Register (ins));
-               when 16#65# =>
-                  CPU.Reg_Load (State, X_Register (ins));
-               when others => begin
-                  Ada.Text_IO.Put_Line ("Unknown misc instruction!");
-                  Ada.Text_IO.Put_Line (Opcode_Value'Image (ins.Value));
-                  delay 1.0;
-                  Video.Finish;
-               end;
-            end case;
+         when Input => case To_Byte (ins) is
+            when 16#9E# =>
+               if Video.Key_Down
+                  (Video.Key (State.Registers (X_Register (ins)) mod 16))
+               then
+                  CPU.Skip (State);
+               end if;
+            when 16#A1# =>
+               if Video.Key_Up
+                  (Video.Key (State.Registers (X_Register (ins)) mod 16))
+               then
+                  CPU.Skip (State);
+               end if;
+            when others => null;
+         end case;
+         when Misc => case To_Byte (ins) is
+            when 16#07# =>
+               State.Registers (X_Register (ins)) := State.Delay_Timer;
+            when 16#15# =>
+               State.Delay_Timer := State.Registers (X_Register (ins));
+            when 16#18# => null; --  TODO: sound
+            when 16#1E# =>
+               State.Address_Register := State.Address_Register +
+                  Address (State.Registers (X_Register (ins)));
+            when 16#29# =>
+               State.Address_Register :=
+                  Address (State.Registers (X_Register (ins))) * 5;
+            when 16#33# => begin
+               State.Memory (State.Address_Register) :=
+                  State.Registers (X_Register (ins)) / 100;
+               State.Memory (State.Address_Register + 1) :=
+                  State.Registers (X_Register (ins)) / 10 mod 10;
+               State.Memory (State.Address_Register + 2) :=
+                  State.Registers (X_Register (ins)) mod 10;
+            end;
+            when 16#55# =>
+               CPU.Reg_Store (State, X_Register (ins));
+            when 16#65# =>
+               CPU.Reg_Load (State, X_Register (ins));
+            when others => begin
+               Ada.Text_IO.Put_Line ("Unknown misc instruction!");
+               Ada.Text_IO.Put_Line (Opcode_Value'Image (ins.Value));
+               delay 1.0;
+               Video.Finish;
+            end;
+         end case;
          when others => begin
             Ada.Text_IO.Put_Line ("Unknown instruction class!");
             Ada.Text_IO.Put_Line (Opcode_Class'Image (ins.Class));
