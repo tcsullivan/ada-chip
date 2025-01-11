@@ -101,9 +101,21 @@ procedure Ada_Chip is
                   State.Registers (X_Register (ins)) := State.Delay_Timer;
                when 16#15# =>
                   State.Delay_Timer := State.Registers (X_Register (ins));
+               when 16#18# => null; --  TODO: sound
                when 16#1E# =>
                   State.Address_Register := State.Address_Register +
                      Address (State.Registers (X_Register (ins)));
+               when 16#29# =>
+                  State.Address_Register :=
+                     Address (State.Registers (X_Register (ins))) * 5;
+               when 16#33# => begin
+                  State.Memory (State.Address_Register) :=
+                     State.Registers (X_Register (ins)) / 100;
+                  State.Memory (State.Address_Register + 1) :=
+                     State.Registers (X_Register (ins)) / 10 mod 10;
+                  State.Memory (State.Address_Register + 2) :=
+                     State.Registers (X_Register (ins)) mod 10;
+               end;
                when 16#55# =>
                   CPU.Reg_Store (State, X_Register (ins));
                when 16#65# =>
