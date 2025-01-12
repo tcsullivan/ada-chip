@@ -1,24 +1,25 @@
 with Sf;
 with Sf.Graphics;
-with Sf.Graphics.Image;
-with Sf.Graphics.RenderWindow;
 with Sf.Graphics.Sprite;
-with Sf.Graphics.Texture;
 
 package Video is
    use Sf;
    use Sf.Graphics;
 
+   type Model is (Chip_8, Super_Chip_10);
    type Key is range 0 .. 15;
    type Key_Map is array (Key'Range) of Boolean;
 
-   Width  : constant := 64;
-   Height : constant := 32;
-   Scale  : constant := 10;
    Title  : constant String := "Ada-Chip";
 
+   Width  : sfUint32;
+   Height : sfUint32;
+   Scale  : sfUint32;
+
    procedure Clear_Screen;
-   procedure Initialize;
+   procedure Low_Res;
+   procedure High_Res;
+   procedure Initialize (M : Model);
    procedure Display;
    procedure Finish;
    procedure Poll_Events;
@@ -31,11 +32,8 @@ package Video is
 
 private
    Keys           : Key_Map;
-   Pixels         : constant sfImage_Ptr   := Image.create (Width, Height);
-   Pixels_Sprite  : constant sfSprite_Ptr  := Sprite.create;
-   Pixels_Texture : constant sfTexture_Ptr :=
-      Texture.createFromImage (Pixels);
-
-   app : constant sfRenderWindow_Ptr := RenderWindow.create
-      ((Width * Scale, Height * Scale, 32), Title);
+   app            : sfRenderWindow_Ptr;
+   Pixels         : sfImage_Ptr;
+   Pixels_Texture : sfTexture_Ptr;
+   Pixels_Sprite  : constant sfSprite_Ptr := Sprite.create;
 end Video;

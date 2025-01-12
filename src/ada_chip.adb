@@ -17,9 +17,13 @@ procedure Ada_Chip is
    State            : CPU.Instance;
    Delay_Timer      : Natural := 0;
    Sound_Timer      : Natural := 0;
+   Model            : Video.Model := Video.Chip_8;
+   Steps_Per_Frame  : Natural := 8;
 
    procedure Draw_Sprite (VX, VY : ISA.Register_Index; N : ISA.Byte) is
       use ISA;
+      use Sf;
+      use Video;
 
       X          : constant Byte := State.Registers (VX);
       Y          : constant Byte := State.Registers (VY);
@@ -27,22 +31,54 @@ procedure Ada_Chip is
       Row_Pixels : Pixel with Address => Row'Address;
       VF         : Byte := 0;
    begin
-      for I in 0 .. N - 1 loop
-         Row := State.Memory (State.Address_Register + Address (I));
+      if Model = Super_Chip_10 and then N = 0 then
+         for I in 0 .. Byte (15) loop
+            Row := State.Memory (State.Address_Register + Address (I * 2));
 
-         for J in 0 .. 7 loop
-            if Row_Pixels (7 - J) then
-               if Video.Toggle_Pixel
-                  (Sf.sfUint32 ((X + Byte (J)) mod Video.Width),
-                     Sf.sfUint32 ((Y + I) mod Video.Height))
-               then
-                  VF := 1;
+            for J in 0 .. 7 loop
+               if Row_Pixels (7 - J) then
+                  if Video.Toggle_Pixel
+                     (sfUint32 (X + Byte (J)) mod Video.Width,
+                        sfUint32 (Y + I) mod Video.Height)
+                  then
+                     VF := 1;
+                  end if;
                end if;
-            end if;
-         end loop;
-      end loop;
+            end loop;
 
-      State.Registers (15) := VF;
+            Row := State.Memory (State.Address_Register + Address (I * 2 + 1));
+
+            for J in 0 .. 7 loop
+               if Row_Pixels (7 - J) then
+                  if Video.Toggle_Pixel
+                     (sfUint32 (8 + X + Byte (J)) mod Video.Width,
+                        sfUint32 (Y + I) mod Video.Height)
+                  then
+                     VF := 1;
+                  end if;
+               end if;
+            end loop;
+         end loop;
+
+         State.Registers (15) := VF;
+      else
+         for I in 0 .. N - 1 loop
+            Row := State.Memory (State.Address_Register + Address (I));
+
+            for J in 0 .. 7 loop
+               if Row_Pixels (7 - J) then
+                  if Video.Toggle_Pixel
+                     (sfUint32 (X + Byte (J)) mod Video.Width,
+                        sfUint32 (Y + I) mod Video.Height)
+                  then
+                     VF := 1;
+                  end if;
+               end if;
+            end loop;
+         end loop;
+
+         State.Registers (15) := VF;
+      end if;
    end Draw_Sprite;
 
    procedure Run_Flow (ins : ISA.Opcode) is
@@ -50,6 +86,8 @@ procedure Ada_Chip is
       case ins.Value is
          when ISA.Clear_Screen => Video.Clear_Screen;
          when ISA.Ret => CPU.Ret (State);
+         when ISA.Low_Res => Video.Low_Res;
+         when ISA.High_Res => Video.High_Res;
          when others =>
             Ada.Text_IO.Put_Line ("Machine code calls are unsupported!");
             delay 1.0;
@@ -85,10 +123,35 @@ procedure Ada_Chip is
          when Set_Sound => Sound_Timer := Natural (State.Registers (X));
          when Reg_Store => CPU.Reg_Store (State, X);
          when Reg_Load  => CPU.Reg_Load (State, X);
+         when Reg_Store_X => declare
+            I : constant Address := State.Address_Register;
+         begin
+            State.Address_Register := CPU.RPL_Stash;
+            CPU.Reg_Store (State, X);
+            State.Address_Register := I;
+         end;
+         when Reg_Load_X  => declare
+            I : constant Address := State.Address_Register;
+         begin
+            State.Address_Register := CPU.RPL_Stash;
+            CPU.Reg_Load (State, X);
+            State.Address_Register := I;
+         end;
          when Add_Address => State.Address_Register :=
             State.Address_Register + Address (State.Registers (X));
-         when Get_Font =>
-            State.Address_Register := Address (State.Registers (X) mod 16) * 5;
+         when Get_Font => declare
+            use Video;
+            VX : constant Byte := State.Registers (X);
+         begin
+            if Model = Video.Super_Chip_10 and then VX > 15 then
+               State.Address_Register := Address (VX mod 16) * 10 + 80;
+            else
+               State.Address_Register := Address (VX mod 16) * 5;
+            end if;
+         end;
+         when Get_Font_10 =>
+            State.Address_Register := Address (State.Registers (X) mod 16)
+               * 10 + 80;
          when Get_BCD =>
             State.Memory (State.Address_Register) :=
                State.Registers (X) / 100;
@@ -143,17 +206,46 @@ procedure Ada_Chip is
       end case;
    end Run_Step;
 
-   Steps_Per_Frame   : constant := 8;
    Beep_Sound        : constant Sf.Audio.sfSound_Ptr := Sf.Audio.Sound.create;
    Beep_Sound_Buffer : constant Sf.Audio.sfSoundBuffer_Ptr :=
       Sf.Audio.SoundBuffer.createFromFile ("beep.ogg");
+
+   File_Loaded : Boolean := False;
 begin
-   if Ada.Command_Line.Argument_Count /= 1 then
-      Ada.Text_IO.Put_Line ("usage: adachip <.c8 file>");
+   for I in 1 .. Ada.Command_Line.Argument_Count loop
+      declare
+         Arg : constant String := Ada.Command_Line.Argument (I);
+      begin
+         if Arg = "--schip" then
+            Ada.Text_IO.Put_Line ("Super-CHIP model selected.");
+            Model := Video.Super_Chip_10;
+         else
+            if Arg'Length > 6
+               and then Arg (1 .. 6) = "--spf="
+            then
+               Steps_Per_Frame := Natural'Value (Arg (7 .. Arg'Length));
+            else
+               if File_Loaded then
+                  Ada.Text_IO.Put_Line ("More than one ROM specified!");
+                  File_Loaded := False;
+                  exit;
+               else
+                  Ada.Text_IO.Put_Line ("Loading ROM: " &
+                     Ada.Command_Line.Argument (I));
+                  CPU.Load_File (State, Ada.Command_Line.Argument (I));
+                  File_Loaded := True;
+               end if;
+            end if;
+         end if;
+      end;
+   end loop;
+
+   if not File_Loaded then
+      Ada.Text_IO.Put_Line ("usage: adachip [flags] <.c8 file>");
    else
-      Video.Initialize;
+      Video.Initialize (Model);
+      Video.Low_Res;
       Random_Byte.Reset (Random_Generator);
-      CPU.Load_File (State, Ada.Command_Line.Argument (1));
       Sf.Audio.Sound.setBuffer (Beep_Sound, Beep_Sound_Buffer);
 
       while Video.Is_Running loop

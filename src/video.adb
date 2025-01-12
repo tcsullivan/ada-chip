@@ -2,22 +2,55 @@ with Sf.Window;
 with Sf.Window.Event;
 with Sf.Window.Keyboard;
 with Sf.Graphics.Color;
+with Sf.Graphics.Image;
+with Sf.Graphics.RenderWindow;
+with Sf.Graphics.Texture;
 
 package body Video is
    procedure Clear_Screen is
    begin
-      for X in 0 .. sfUint32 (Width) - 1 loop
-         for Y in 0 .. sfUint32 (Height) - 1 loop
+      for X in 0 .. Width - 1 loop
+         for Y in 0 .. Height - 1 loop
             Image.setPixel (Pixels, X, Y, Color.sfBlack);
          end loop;
       end loop;
    end Clear_Screen;
 
-   procedure Initialize is
+   procedure Low_Res is
    begin
+      Video.Width := 64;
+      Video.Height := 32;
+      Video.Scale := 10;
+      Sprite.setScale (Pixels_Sprite, (Float (Scale), Float (Scale)));
+   end Low_Res;
+
+   procedure High_Res is
+   begin
+      Video.Width := 128;
+      Video.Height := 64;
+      Video.Scale := 5;
+      Sprite.setScale (Pixels_Sprite, (Float (Scale), Float (Scale)));
+   end High_Res;
+
+   procedure Initialize (M : Model) is
+   begin
+      case M is
+         when Chip_8 =>
+            Width  := 64;
+            Height := 32;
+            Scale  := 10;
+         when Super_Chip_10 =>
+            Width  := 128;
+            Height := 64;
+            Scale  := 5;
+      end case;
+
+      app := RenderWindow.create ((Width * Scale, Height * Scale, 32), Title);
+      Pixels := Image.create (Width, Height);
+      Pixels_Texture := Texture.createFromImage (Pixels);
+
       Sprite.setTexture (Pixels_Sprite, Pixels_Texture);
       Sprite.setPosition (Pixels_Sprite, (Float (0), Float (0)));
-      Sprite.setScale (Pixels_Sprite, (Float (Scale), Float (Scale)));
       RenderWindow.setFramerateLimit (app, 60);
    end Initialize;
 

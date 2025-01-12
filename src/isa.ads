@@ -45,6 +45,8 @@ package ISA is
 
    Clear_Screen : constant Opcode_Value := 16#E0#;
    Ret          : constant Opcode_Value := 16#EE#;
+   Low_Res      : constant Opcode_Value := 16#FE#;
+   High_Res     : constant Opcode_Value := 16#FF#;
 
    type Math_Class is (
       Assign, Bit_Or, Bit_And, Bit_Xor, Add, Sub_Y, Shift_Right, Sub_X,
@@ -71,8 +73,8 @@ package ISA is
    );
 
    type Misc_Class is (
-      Get_Delay, Get_Key, Set_Delay, Set_Sound, Add_Address, Get_Font, Get_BCD,
-      Reg_Store, Reg_Load
+      Get_Delay, Get_Key, Set_Delay, Set_Sound, Add_Address, Get_Font,
+      Get_Font_10, Get_BCD, Reg_Store, Reg_Load, Reg_Store_X, Reg_Load_X
    );
 
    for Misc_Class use (
@@ -82,9 +84,12 @@ package ISA is
       Set_Sound   => Opcode_Value (16#18#),
       Add_Address => Opcode_Value (16#1E#),
       Get_Font    => Opcode_Value (16#29#),
+      Get_Font_10 => Opcode_Value (16#30#),
       Get_BCD     => Opcode_Value (16#33#),
       Reg_Store   => Opcode_Value (16#55#),
-      Reg_Load    => Opcode_Value (16#65#)
+      Reg_Load    => Opcode_Value (16#65#),
+      Reg_Store_X => Opcode_Value (16#75#),
+      Reg_Load_X  => Opcode_Value (16#85#)
    );
 
    Start_Address : constant Address := 16#200#;
