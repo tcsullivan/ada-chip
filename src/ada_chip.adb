@@ -50,11 +50,10 @@ procedure Ada_Chip is
       case ins.Value is
          when ISA.Clear_Screen => Video.Clear_Screen;
          when ISA.Ret => CPU.Ret (State);
-         when others => begin
+         when others =>
             Ada.Text_IO.Put_Line ("Machine code calls are unsupported!");
             delay 1.0;
             Video.Finish;
-         end;
       end case;
    end Run_Flow;
 
@@ -90,14 +89,13 @@ procedure Ada_Chip is
             State.Address_Register + Address (State.Registers (X));
          when Get_Font =>
             State.Address_Register := Address (State.Registers (X) mod 16) * 5;
-         when Get_BCD => begin
+         when Get_BCD =>
             State.Memory (State.Address_Register) :=
                State.Registers (X) / 100;
             State.Memory (State.Address_Register + 1) :=
                State.Registers (X) / 10 mod 10;
             State.Memory (State.Address_Register + 2) :=
                State.Registers (X) mod 10;
-         end;
       end case;
    end Run_Misc;
 

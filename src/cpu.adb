@@ -1,5 +1,4 @@
 with Ada.Sequential_IO;
-with Ada.Text_IO;
 with Bit_Ops;
 
 package body CPU is
@@ -52,47 +51,32 @@ package body CPU is
    end Skip;
 
    procedure Math (Inst : in out Instance; VX, VY : Register_Index; N : Byte)
-   is begin
-      case N is
-         when 0 =>
-            Inst.Registers (VX) := Inst.Registers (VY);
-         when 1 =>
-            Inst.Registers (VX) := Bit_Ops.Bitwise_Or
-               (Inst.Registers (VX), Inst.Registers (VY));
-         when 2 =>
-            Inst.Registers (VX) := Bit_Ops.Bitwise_And
-               (Inst.Registers (VX), Inst.Registers (VY));
-         when 3 =>
-            Inst.Registers (VX) := Bit_Ops.Bitwise_Xor
-               (Inst.Registers (VX), Inst.Registers (VY));
-         when 4 =>
-            declare
-               X : constant Byte := Inst.Registers (VX);
-               Y : constant Byte := Inst.Registers (VY);
-            begin
-               Inst.Registers (VX) := X + Y;
-               Inst.Registers (15) :=
-                  (if Integer (X) + Integer (Y) > Integer (X + Y)
-                     then 1 else 0);
-            end;
-         when 5 =>
-            declare
-               X : constant Byte := Inst.Registers (VX);
-               Y : constant Byte := Inst.Registers (VY);
-            begin
-               Inst.Registers (VX) := X - Y;
-               Inst.Registers (15) := (if X >= Y then 1 else 0);
-            end;
-         when 6 =>
-            Inst.Registers (15) := Inst.Registers (VX) mod 2;
-            Inst.Registers (VX) := Inst.Registers (VX) / 2;
-         when 14 =>
-            Inst.Registers (15) := Inst.Registers (VX) / (2 ** 7);
-            Inst.Registers (VX) := Inst.Registers (VX) * 2;
-         when others => begin
-            Ada.Text_IO.Put_Line ("Uh oh!");
-            Ada.Text_IO.Put_Line (Byte'Image (N));
-         end;
+   is
+      X : constant Byte := Inst.Registers (VX);
+      Y : constant Byte := Inst.Registers (VY);
+   begin
+      case Math_Class'Enum_Val (N) is
+         when Assign => Inst.Registers (VX) := Y;
+         when Bit_Or => Inst.Registers (VX) := Bit_Ops.Bitwise_Or (X, Y);
+         when Bit_And => Inst.Registers (VX) := Bit_Ops.Bitwise_And (X, Y);
+         when Bit_Xor => Inst.Registers (VX) := Bit_Ops.Bitwise_Xor (X, Y);
+         when Add =>
+            Inst.Registers (VX) := X + Y;
+            Inst.Registers (15) :=
+               (if Integer (X) + Integer (Y) > Integer (X + Y)
+                  then 1 else 0);
+         when Sub_Y =>
+            Inst.Registers (VX) := X - Y;
+            Inst.Registers (15) := (if X >= Y then 1 else 0);
+         when Shift_Right =>
+            Inst.Registers (15) := X mod 2;
+            Inst.Registers (VX) := X / 2;
+         when Sub_X =>
+            Inst.Registers (VX) := Y - X;
+            Inst.Registers (15) := (if Y >= X then 1 else 0);
+         when Shift_Left =>
+            Inst.Registers (15) := X / (2 ** 7);
+            Inst.Registers (VX) := X * 2;
       end case;
    end Math;
 

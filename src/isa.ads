@@ -46,6 +46,23 @@ package ISA is
    Clear_Screen : constant Opcode_Value := 16#E0#;
    Ret          : constant Opcode_Value := 16#EE#;
 
+   type Math_Class is (
+      Assign, Bit_Or, Bit_And, Bit_Xor, Add, Sub_Y, Shift_Right, Sub_X,
+      Shift_Left
+   );
+
+   for Math_Class use (
+      Assign      => 0,
+      Bit_Or      => 1,
+      Bit_And     => 2,
+      Bit_Xor     => 3,
+      Add         => 4,
+      Sub_Y       => 5,
+      Shift_Right => 6,
+      Sub_X       => 7,
+      Shift_Left  => 14
+   );
+
    type Input_Class is (Key_Down, Key_Up);
 
    for Input_Class use (
