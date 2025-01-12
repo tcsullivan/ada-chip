@@ -1,6 +1,6 @@
 # ada-chip
 
-A CHIP-8 emulator written in Ada (as an exercise for learning Ada). Supports (*I believe*) the entire instruction set from the ["SUPER-CHIP specification from 1991 (but without the additional opcodes that provide extended functionality)"](https://en.wikipedia.org/wiki/CHIP-8#Opcode_table).
+A CHIP-8 emulator written in Ada (as an exercise for learning Ada). Supports the entire instruction set from the ["SUPER-CHIP specification from 1991 (but without the additional opcodes that provide extended functionality)"](https://en.wikipedia.org/wiki/CHIP-8#Opcode_table).
 
 ## Building
 
@@ -25,5 +25,6 @@ Some ROMs do not work well, particularly with rendering; however, other emulator
 ## Useful links
 
 * [kripod/chip8-roms](https://github.com/kripod/chip8-roms): ROMs to try out.
+* [CHIP-8 Archive](https://johnearnest.github.io/chip8Archive/?sort=platform): More ROMs.
 * [CHIP-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
 * [CHIP-8 Wikipedia entry](https://en.wikipedia.org/wiki/CHIP-8)
