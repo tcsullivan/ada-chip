@@ -40,21 +40,35 @@ package ISA is
       Random        => 12,
       Draw_Sprite   => 13,
       Input         => 14,
-      Misc          => 15);
+      Misc          => 15
+   );
 
-   Clear_Screen : constant Byte := 16#E0#;
-   Ret          : constant Byte := 16#EE#;
-   Key_Down     : constant Byte := 16#9E#;
-   Key_Up       : constant Byte := 16#A1#;
-   Get_Delay    : constant Byte := 16#07#;
-   Get_Key      : constant Byte := 16#0A#;
-   Set_Delay    : constant Byte := 16#15#;
-   Set_Sound    : constant Byte := 16#18#;
-   Add_Address  : constant Byte := 16#1E#;
-   Get_Font     : constant Byte := 16#29#;
-   Get_BCD      : constant Byte := 16#33#;
-   Reg_Store    : constant Byte := 16#55#;
-   Reg_Load     : constant Byte := 16#65#;
+   Clear_Screen : constant Opcode_Value := 16#E0#;
+   Ret          : constant Opcode_Value := 16#EE#;
+
+   type Input_Class is (Key_Down, Key_Up);
+
+   for Input_Class use (
+      Key_Down => 16#9E#,
+      Key_Up   => 16#A1#
+   );
+
+   type Misc_Class is (
+      Get_Delay, Get_Key, Set_Delay, Set_Sound, Add_Address, Get_Font, Get_BCD,
+      Reg_Store, Reg_Load
+   );
+
+   for Misc_Class use (
+      Get_Delay   => Opcode_Value (16#07#),
+      Get_Key     => Opcode_Value (16#0A#),
+      Set_Delay   => Opcode_Value (16#15#),
+      Set_Sound   => Opcode_Value (16#18#),
+      Add_Address => Opcode_Value (16#1E#),
+      Get_Font    => Opcode_Value (16#29#),
+      Get_BCD     => Opcode_Value (16#33#),
+      Reg_Store   => Opcode_Value (16#55#),
+      Reg_Load    => Opcode_Value (16#65#)
+   );
 
    Start_Address : constant Address := 16#200#;
 

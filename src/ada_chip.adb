@@ -11,20 +11,18 @@ with CPU;
 with Video;
 
 procedure Ada_Chip is
-   use Sf.Audio;
-
    package Random_Byte is new Ada.Numerics.Discrete_Random (ISA.Byte);
 
-   Steps_Per_Frame : constant := 12;
+   Steps_Per_Frame : constant := 8;
 
    State            : CPU.Instance;
    Random_Generator : Random_Byte.Generator;
-   Delay_Timer      : ISA.Byte := 0;
-   Sound_Timer      : ISA.Byte := 0;
+   Delay_Timer      : Natural := 0;
+   Sound_Timer      : Natural := 0;
 
-   Beep_Sound_Buffer : constant sfSoundBuffer_Ptr :=
-      SoundBuffer.createFromFile ("beep.ogg");
-   Beep_Sound        : constant sfSound_Ptr := Sound.create;
+   Beep_Sound_Buffer : constant Sf.Audio.sfSoundBuffer_Ptr :=
+      Sf.Audio.SoundBuffer.createFromFile ("beep.ogg");
+   Beep_Sound        : constant Sf.Audio.sfSound_Ptr := Sf.Audio.Sound.create;
 
    procedure Draw_Sprite (VX, VY : ISA.Register_Index; N : ISA.Byte) is
       use Sf;
@@ -56,23 +54,69 @@ procedure Ada_Chip is
       State.Registers (15) := (if VF then 1 else 0);
    end Draw_Sprite;
 
+   procedure Run_Flow (ins : ISA.Opcode) is
+   begin
+      case ins.Value is
+         when ISA.Clear_Screen => Video.Clear_Screen;
+         when ISA.Ret => CPU.Ret (State);
+         when others => begin
+            Ada.Text_IO.Put_Line ("Machine code calls are unsupported!");
+            delay 1.0;
+            Video.Finish;
+         end;
+      end case;
+   end Run_Flow;
+
+   procedure Run_Input (ins : ISA.Opcode) is
+      use ISA;
+      Key : constant Video.Key := Video.Key
+         (State.Registers (X_Register (ins)) mod 16);
+   begin
+      case Input_Class'Enum_Val (ins.Value mod 256) is
+         when Key_Down =>
+            if Video.Key_Down (Key) then
+               CPU.Skip (State);
+            end if;
+         when Key_Up =>
+            if Video.Key_Up (Key) then
+               CPU.Skip (State);
+            end if;
+      end case;
+   end Run_Input;
+
+   procedure Run_Misc (ins : ISA.Opcode) is
+      use ISA;
+      X : constant Register_Index := X_Register (ins);
+   begin
+      case Misc_Class'Enum_Val (ins.Value mod 256) is
+         when Get_Delay => State.Registers (X) := Byte (Delay_Timer);
+         when Get_Key   => State.Registers (X) := Byte (Video.Next_Key);
+         when Set_Delay => Delay_Timer := Natural (State.Registers (X));
+         when Set_Sound => Sound_Timer := Natural (State.Registers (X));
+         when Reg_Store => CPU.Reg_Store (State, X);
+         when Reg_Load  => CPU.Reg_Load (State, X);
+         when Add_Address => State.Address_Register :=
+            State.Address_Register + Address (State.Registers (X));
+         when Get_Font =>
+            State.Address_Register := Address (State.Registers (X) mod 16) * 5;
+         when Get_BCD => begin
+            State.Memory (State.Address_Register) :=
+               State.Registers (X) / 100;
+            State.Memory (State.Address_Register + 1) :=
+               State.Registers (X) / 10 mod 10;
+            State.Memory (State.Address_Register + 2) :=
+               State.Registers (X) mod 10;
+         end;
+      end case;
+   end Run_Misc;
+
    procedure Run_Step is
       use ISA;
-
       ins : Opcode;
    begin
       ins := CPU.Get_Opcode (State);
       case ins.Class is
-         when Flow => case Byte (ins.Value) is
-            when ISA.Clear_Screen => Video.Clear_Screen;
-            when ISA.Ret => CPU.Ret (State);
-            when others => begin
-               Ada.Text_IO.Put_Line ("Unknown flow instruction!");
-               Ada.Text_IO.Put_Line (Opcode_Value'Image (ins.Value));
-               delay 1.0;
-               Video.Finish;
-            end;
-         end case;
+         when Flow => Run_Flow (ins);
          when Jump => CPU.Jump (State, Address (ins.Value));
          when Call => CPU.Call (State, Address (ins.Value));
          when Equal =>
@@ -111,55 +155,8 @@ procedure Ada_Chip is
          when Draw_Sprite =>
             Draw_Sprite (X_Register (ins), Y_Register (ins),
                To_Byte (ins) mod 16);
-         when Input => case To_Byte (ins) is
-            when ISA.Key_Down =>
-               if Video.Key_Down
-                  (Video.Key (State.Registers (X_Register (ins)) mod 16))
-               then
-                  CPU.Skip (State);
-               end if;
-            when ISA.Key_Up =>
-               if Video.Key_Up
-                  (Video.Key (State.Registers (X_Register (ins)) mod 16))
-               then
-                  CPU.Skip (State);
-               end if;
-            when others => null;
-         end case;
-         when Misc => case To_Byte (ins) is
-            when ISA.Get_Delay =>
-               State.Registers (X_Register (ins)) := Delay_Timer;
-            when ISA.Get_Key =>
-               State.Registers (X_Register (ins)) := Byte (Video.Next_Key);
-            when ISA.Set_Delay =>
-               Delay_Timer := State.Registers (X_Register (ins));
-            when ISA.Set_Sound =>
-               Sound_Timer := State.Registers (X_Register (ins));
-            when ISA.Add_Address =>
-               State.Address_Register := State.Address_Register +
-                  Address (State.Registers (X_Register (ins)));
-            when ISA.Get_Font =>
-               State.Address_Register :=
-                  Address (State.Registers (X_Register (ins)) mod 16) * 5;
-            when ISA.Get_BCD => begin
-               State.Memory (State.Address_Register) :=
-                  State.Registers (X_Register (ins)) / 100;
-               State.Memory (State.Address_Register + 1) :=
-                  State.Registers (X_Register (ins)) / 10 mod 10;
-               State.Memory (State.Address_Register + 2) :=
-                  State.Registers (X_Register (ins)) mod 10;
-            end;
-            when ISA.Reg_Store =>
-               CPU.Reg_Store (State, X_Register (ins));
-            when ISA.Reg_Load =>
-               CPU.Reg_Load (State, X_Register (ins));
-            when others => begin
-               Ada.Text_IO.Put_Line ("Unknown misc instruction!");
-               Ada.Text_IO.Put_Line (Opcode_Value'Image (ins.Value));
-               delay 1.0;
-               Video.Finish;
-            end;
-         end case;
+         when Input => Run_Input (ins);
+         when Misc => Run_Misc (ins);
          when others => begin
             Ada.Text_IO.Put_Line ("Unknown instruction class!");
             Ada.Text_IO.Put_Line (Opcode_Class'Image (ins.Class));
@@ -168,8 +165,6 @@ procedure Ada_Chip is
          end;
       end case;
    end Run_Step;
-
-   use ISA;
 begin
    if Ada.Command_Line.Argument_Count /= 1 then
       Ada.Text_IO.Put_Line ("usage: adachip <.c8 file>");
@@ -177,7 +172,7 @@ begin
       Video.Initialize;
       Random_Byte.Reset (Random_Generator);
       CPU.Load_File (State, Ada.Command_Line.Argument (1));
-      Sound.setBuffer (Beep_Sound, Beep_Sound_Buffer);
+      Sf.Audio.Sound.setBuffer (Beep_Sound, Beep_Sound_Buffer);
 
       while Video.Is_Running loop
          Video.Display;
@@ -188,7 +183,7 @@ begin
          end if;
 
          if Sound_Timer > 0 then
-            Sound.play (Beep_Sound);
+            Sf.Audio.Sound.play (Beep_Sound);
             Sound_Timer := Sound_Timer - 1;
          end if;
 
@@ -197,6 +192,6 @@ begin
          end loop;
       end loop;
 
-      Sound.destroy (Beep_Sound);
+      Sf.Audio.Sound.destroy (Beep_Sound);
    end if;
 end Ada_Chip;
