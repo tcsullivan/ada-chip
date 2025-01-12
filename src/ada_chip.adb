@@ -13,45 +13,36 @@ with Video;
 procedure Ada_Chip is
    package Random_Byte is new Ada.Numerics.Discrete_Random (ISA.Byte);
 
-   Steps_Per_Frame : constant := 8;
-
-   State            : CPU.Instance;
    Random_Generator : Random_Byte.Generator;
+   State            : CPU.Instance;
    Delay_Timer      : Natural := 0;
    Sound_Timer      : Natural := 0;
 
-   Beep_Sound_Buffer : constant Sf.Audio.sfSoundBuffer_Ptr :=
-      Sf.Audio.SoundBuffer.createFromFile ("beep.ogg");
-   Beep_Sound        : constant Sf.Audio.sfSound_Ptr := Sf.Audio.Sound.create;
-
    procedure Draw_Sprite (VX, VY : ISA.Register_Index; N : ISA.Byte) is
-      use Sf;
       use ISA;
 
-      X, Y       : sfUint32;
+      X          : constant Byte := State.Registers (VX);
+      Y          : constant Byte := State.Registers (VY);
       Row        : aliased Byte;
       Row_Pixels : Pixel with Address => Row'Address;
-      VF         : Boolean := False;
+      VF         : Byte := 0;
    begin
-      X := sfUint32 (State.Registers (VX));
-      Y := sfUint32 (State.Registers (VY));
-
       for I in 0 .. N - 1 loop
          Row := State.Memory (State.Address_Register + Address (I));
 
          for J in 0 .. 7 loop
             if Row_Pixels (7 - J) then
                if Video.Toggle_Pixel
-                  ((X + sfUint32 (J)) mod Video.Width,
-                     (Y + sfUint32 (I)) mod Video.Height)
+                  (Sf.sfUint32 ((X + Byte (J)) mod Video.Width),
+                     Sf.sfUint32 ((Y + I) mod Video.Height))
                then
-                  VF := True;
+                  VF := 1;
                end if;
             end if;
          end loop;
       end loop;
 
-      State.Registers (15) := (if VF then 1 else 0);
+      State.Registers (15) := VF;
    end Draw_Sprite;
 
    procedure Run_Flow (ins : ISA.Opcode) is
@@ -72,7 +63,7 @@ procedure Ada_Chip is
       Key : constant Video.Key := Video.Key
          (State.Registers (X_Register (ins)) mod 16);
    begin
-      case Input_Class'Enum_Val (ins.Value mod 256) is
+      case Input_Class'Enum_Val (To_Byte (ins)) is
          when Key_Down =>
             if Video.Key_Down (Key) then
                CPU.Skip (State);
@@ -88,7 +79,7 @@ procedure Ada_Chip is
       use ISA;
       X : constant Register_Index := X_Register (ins);
    begin
-      case Misc_Class'Enum_Val (ins.Value mod 256) is
+      case Misc_Class'Enum_Val (To_Byte (ins)) is
          when Get_Delay => State.Registers (X) := Byte (Delay_Timer);
          when Get_Key   => State.Registers (X) := Byte (Video.Next_Key);
          when Set_Delay => Delay_Timer := Natural (State.Registers (X));
@@ -112,59 +103,52 @@ procedure Ada_Chip is
 
    procedure Run_Step is
       use ISA;
-      ins : Opcode;
+      ins : constant Opcode := CPU.Get_Opcode (State);
+      XI  : constant Register_Index := X_Register (ins);
+      YI  : constant Register_Index := Y_Register (ins);
+      X   : constant Byte := State.Registers (XI);
+      Y   : constant Byte := State.Registers (YI);
    begin
-      ins := CPU.Get_Opcode (State);
       case ins.Class is
          when Flow => Run_Flow (ins);
          when Jump => CPU.Jump (State, Address (ins.Value));
          when Call => CPU.Call (State, Address (ins.Value));
+         when Set_Register => State.Registers (XI) := To_Byte (ins);
+         when Add => State.Registers (XI) := X + To_Byte (ins);
+         when Math => CPU.Math (State, XI, YI, To_Byte (ins) mod 16);
+         when Set_Address => State.Address_Register := Address (ins.Value);
+         when Draw_Sprite => Draw_Sprite (XI, YI, To_Byte (ins) mod 16);
+         when Input => Run_Input (ins);
+         when Misc => Run_Misc (ins);
+         when Jump_Relative =>
+            CPU.Jump (State,
+               Address (State.Registers (0)) + Address (ins.Value));
          when Equal =>
-            if State.Registers (X_Register (ins)) = To_Byte (ins) then
+            if X = To_Byte (ins) then
                CPU.Skip (State);
             end if;
          when Not_Equal =>
-            if State.Registers (X_Register (ins)) /= To_Byte (ins) then
+            if X /= To_Byte (ins) then
                CPU.Skip (State);
             end if;
          when Compare =>
-            if State.Registers (X_Register (ins)) =
-               State.Registers (Y_Register (ins))
-            then
+            if X = Y then
                CPU.Skip (State);
             end if;
-         when Set_Register =>
-            State.Registers (X_Register (ins)) := To_Byte (ins);
-         when Add =>
-            State.Registers (X_Register (ins)) :=
-               State.Registers (X_Register (ins)) + To_Byte (ins);
-         when Math =>
-            CPU.Math (State, X_Register (ins), Y_Register (ins),
-               To_Byte (ins) mod 16);
          when Not_Compare =>
-            if State.Registers (X_Register (ins)) /=
-               State.Registers (Y_Register (ins))
-            then
+            if X /= Y then
                CPU.Skip (State);
             end if;
-         when Set_Address =>
-            State.Address_Register := Address (ins.Value);
          when Random =>
-            State.Registers (X_Register (ins)) :=
+            State.Registers (XI) :=
                Random_Byte.Random (Random_Generator) mod To_Byte (ins);
-         when Draw_Sprite =>
-            Draw_Sprite (X_Register (ins), Y_Register (ins),
-               To_Byte (ins) mod 16);
-         when Input => Run_Input (ins);
-         when Misc => Run_Misc (ins);
-         when others => begin
-            Ada.Text_IO.Put_Line ("Unknown instruction class!");
-            Ada.Text_IO.Put_Line (Opcode_Class'Image (ins.Class));
-            delay 1.0;
-            Video.Finish;
-         end;
       end case;
    end Run_Step;
+
+   Steps_Per_Frame   : constant := 8;
+   Beep_Sound        : constant Sf.Audio.sfSound_Ptr := Sf.Audio.Sound.create;
+   Beep_Sound_Buffer : constant Sf.Audio.sfSoundBuffer_Ptr :=
+      Sf.Audio.SoundBuffer.createFromFile ("beep.ogg");
 begin
    if Ada.Command_Line.Argument_Count /= 1 then
       Ada.Text_IO.Put_Line ("usage: adachip <.c8 file>");

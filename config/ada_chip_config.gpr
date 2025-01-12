@@ -12,7 +12,7 @@ abstract project Ada_Chip_Config is
    Ada_Compiler_Switches := External_As_List ("ADAFLAGS", " ");
    Ada_Compiler_Switches := Ada_Compiler_Switches &
           (
-            "-Og" -- Optimize for debug
+            "-O2"
            ,"-ffunction-sections" -- Separate ELF section for each function
            ,"-fdata-sections" -- Separate ELF section for each variable
            ,"-g" -- Generate debug info
