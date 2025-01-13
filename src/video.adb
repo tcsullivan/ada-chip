@@ -16,6 +16,44 @@ package body Video is
       end loop;
    end Clear_Screen;
 
+   procedure Scroll_Right is
+      use Sf.Graphics.Color;
+
+      SS  : constant sfUint32 := 4;
+      Tmp : array (0 .. SS - 1) of sfColor;
+   begin
+      for J in 0 .. Height - 1 loop
+         for I in 0 .. SS - 1 loop
+            Tmp (I) := Image.getPixel (Pixels, Width - SS + I, J);
+         end loop;
+         for I in 0 .. Width - 5 loop
+            Image.setPixel (Pixels, I + SS, J, Image.getPixel (Pixels, I, J));
+         end loop;
+         for I in 0 .. SS - 1 loop
+            Image.setPixel (Pixels, I, J, Tmp (I));
+         end loop;
+      end loop;
+   end Scroll_Right;
+
+   procedure Scroll_Left is
+      use Sf.Graphics.Color;
+
+      SS  : constant sfUint32 := 4;
+      Tmp : array (0 .. SS - 1) of sfColor;
+   begin
+      for J in 0 .. Height - 1 loop
+         for I in 0 .. SS - 1 loop
+            Tmp (I) := Image.getPixel (Pixels, I, J);
+         end loop;
+         for I in SS .. Width - 1 loop
+            Image.setPixel (Pixels, I - SS, J, Image.getPixel (Pixels, I, J));
+         end loop;
+         for I in 0 .. SS - 1 loop
+            Image.setPixel (Pixels, Width - SS + I, J, Tmp (I));
+         end loop;
+      end loop;
+   end Scroll_Left;
+
    procedure Low_Res is
    begin
       Video.Width := 64;

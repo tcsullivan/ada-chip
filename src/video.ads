@@ -24,6 +24,9 @@ package Video is
    procedure Finish;
    procedure Poll_Events;
 
+   procedure Scroll_Right;
+   procedure Scroll_Left;
+
    function Key_Down (K : Key) return Boolean;
    function Key_Up (K : Key) return Boolean;
    function Is_Running return Boolean;

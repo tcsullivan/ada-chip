@@ -82,16 +82,20 @@ procedure Ada_Chip is
    end Draw_Sprite;
 
    procedure Run_Flow (ins : ISA.Opcode) is
+      use ISA;
    begin
-      case ins.Value is
-         when ISA.Clear_Screen => Video.Clear_Screen;
-         when ISA.Ret => CPU.Ret (State);
-         when ISA.Low_Res => Video.Low_Res;
-         when ISA.High_Res => Video.High_Res;
-         when others =>
-            Ada.Text_IO.Put_Line ("Machine code calls are unsupported!");
-            delay 1.0;
+      case Flow_Class'Enum_Val (ins.Value) is
+         when Scroll_Down_0 .. Scroll_Down_15 =>
+            null;
+         when Scroll_Right => Video.Scroll_Right;
+         when Scroll_Left => Video.Scroll_Left;
+         when Exit_Interpreter =>
+            Ada.Text_IO.Put_Line ("Exit interpreter not supported!");
             Video.Finish;
+         when Clear_Screen => Video.Clear_Screen;
+         when Ret => CPU.Ret (State);
+         when Low_Res => Video.Low_Res;
+         when High_Res => Video.High_Res;
       end case;
    end Run_Flow;
 

@@ -43,10 +43,40 @@ package ISA is
       Misc          => 15
    );
 
-   Clear_Screen : constant Opcode_Value := 16#E0#;
-   Ret          : constant Opcode_Value := 16#EE#;
-   Low_Res      : constant Opcode_Value := 16#FE#;
-   High_Res     : constant Opcode_Value := 16#FF#;
+   type Flow_Class is (
+      Scroll_Down_0, Scroll_Down_1, Scroll_Down_2, Scroll_Down_3,
+      Scroll_Down_4, Scroll_Down_5, Scroll_Down_6, Scroll_Down_7,
+      Scroll_Down_8, Scroll_Down_9, Scroll_Down_10, Scroll_Down_11,
+      Scroll_Down_12, Scroll_Down_13, Scroll_Down_14, Scroll_Down_15,
+      Clear_Screen, Ret, Scroll_Right, Scroll_Left, Exit_Interpreter, Low_Res,
+      High_Res
+   );
+
+   for Flow_Class use (
+      Scroll_Down_0  => 16#C0#,
+      Scroll_Down_1  => 16#C1#,
+      Scroll_Down_2  => 16#C2#,
+      Scroll_Down_3  => 16#C3#,
+      Scroll_Down_4  => 16#C4#,
+      Scroll_Down_5  => 16#C5#,
+      Scroll_Down_6  => 16#C6#,
+      Scroll_Down_7  => 16#C7#,
+      Scroll_Down_8  => 16#C8#,
+      Scroll_Down_9  => 16#C9#,
+      Scroll_Down_10 => 16#CA#,
+      Scroll_Down_11 => 16#CB#,
+      Scroll_Down_12 => 16#CC#,
+      Scroll_Down_13 => 16#CD#,
+      Scroll_Down_14 => 16#CE#,
+      Scroll_Down_15 => 16#CF#,
+      Clear_Screen   => 16#E0#,
+      Ret            => 16#EE#,
+      Scroll_Right   => 16#FB#,
+      Scroll_Left    => 16#FC#,
+      Exit_Interpreter => 16#FD#,
+      Low_Res        => 16#FE#,
+      High_Res       => 16#FF#
+   );
 
    type Math_Class is (
       Assign, Bit_Or, Bit_And, Bit_Xor, Add, Sub_Y, Shift_Right, Sub_X,
