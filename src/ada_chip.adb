@@ -86,7 +86,8 @@ procedure Ada_Chip is
    begin
       case Flow_Class'Enum_Val (ins.Value) is
          when Scroll_Down_0 .. Scroll_Down_15 =>
-            null;
+            Ada.Text_IO.Put_Line ("Vertical scroll not supported!");
+            Video.Finish;
          when Scroll_Right => Video.Scroll_Right;
          when Scroll_Left => Video.Scroll_Left;
          when Exit_Interpreter =>
@@ -101,7 +102,7 @@ procedure Ada_Chip is
 
    procedure Run_Input (ins : ISA.Opcode) is
       use ISA;
-      Key : constant Video.Key := Video.Key
+      Key : constant Video.Key := Video.Key'Enum_Val
          (State.Registers (X_Register (ins)) mod 16);
    begin
       case Input_Class'Enum_Val (To_Byte (ins)) is
@@ -122,7 +123,8 @@ procedure Ada_Chip is
    begin
       case Misc_Class'Enum_Val (To_Byte (ins)) is
          when Get_Delay => State.Registers (X) := Byte (Delay_Timer);
-         when Get_Key   => State.Registers (X) := Byte (Video.Next_Key);
+         when Get_Key   => State.Registers (X) :=
+            Byte (Video.Key'Enum_Rep (Video.Next_Key));
          when Set_Delay => Delay_Timer := Natural (State.Registers (X));
          when Set_Sound => Sound_Timer := Natural (State.Registers (X));
          when Reg_Store => CPU.Reg_Store (State, X);
